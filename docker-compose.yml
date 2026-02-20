@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: process-decision-postgres
+    environment:
+      POSTGRES_USER: pds
+      POSTGRES_PASSWORD: pds
+      POSTGRES_DB: pds
+    ports:
+      - "8887:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pds -d pds"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./src/ProcessDecisionService.Api
+    container_name: process-decision-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8888
+      ConnectionStrings__Db: Host=postgres;Port=5432;Database=pds;Username=pds;Password=pds
+    ports:
+      - "8888:8888"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
